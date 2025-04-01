@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function ChatBox() {
   const [messages, setMessages] = useState([
@@ -7,10 +7,70 @@ export default function ChatBox() {
   ]);
   const [input, setInput] = useState("");
 
-  const handleSend = () => {
+
+  const demoArticle = "This is a sample article used for testing the chatbot functionality.";
+
+
+  useEffect(() => {
+    const uploadArticle = async () => {
+      try {
+        const res = await fetch("/api/upsert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ article: demoArticle })
+        });
+
+        if (!res.ok) {
+          const errorText = await res.text(); 
+          console.error("Upload failed:", errorText);
+          throw new Error("Failed to upload article");
+        }
+
+        const data = await res.json();
+        console.log("✅ Article uploaded:", data);
+      } catch (err) {
+        console.error("⚠️ Upload error:", err);
+        setMessages((prev) => [
+          ...prev,
+          { sender: "bot", text: "⚠️ Failed to upload article to backend." }
+        ]);
+      }
+    };
+
+    uploadArticle();
+  }, []);
+
+  const handleSend = async () => {
     if (!input.trim()) return;
-    setMessages([...messages, { sender: "user", text: input }]);
+
+    const userMessage = { sender: "user", text: input };
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: input })
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Chat fetch error:", errorText);
+        throw new Error("Chat fetch failed");
+      }
+
+      const data = await res.json();
+      const botResponse = { sender: "bot", text: data.response };
+
+      setMessages((prev) => [...prev, botResponse]);
+    } catch (err) {
+      console.error("⚠️ Chat error:", err);
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: "⚠️ Error: Unable to get a response from the backend." }
+      ]);
+    }
   };
 
   return (

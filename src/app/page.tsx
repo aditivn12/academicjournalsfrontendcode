@@ -7,39 +7,80 @@ export default function ChatBox() {
   ]);
   const [input, setInput] = useState("");
 
-
   const demoArticle = "This is a sample article used for testing the chatbot functionality.";
 
+  // useEffect(() => {
+  //   const uploadArticle = async () => {
+  //     try {
+  //       const res = await fetch("http://localhost:8000/upsert", {
+  //         method: "POST",
+  //         mode: "no-cors", // 👈 this line sets it
+  //         headers: {
+  //           "Content-Type": "application/json"
+  //         },
+  //         body: JSON.stringify({ article: "some text here" })
+  //       });
 
-  useEffect(() => {
-    const uploadArticle = async () => {
-      try {
-        const res = await fetch("/api/upsert", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ article: demoArticle })
-        });
+  //       if (!res.ok) {
+  //         const errorText = await res.text(); 
+  //         console.error("Upload failed:", errorText);
+  //         throw new Error("Failed to upload article");
+  //       }
 
-        if (!res.ok) {
-          const errorText = await res.text(); 
-          console.error("Upload failed:", errorText);
-          throw new Error("Failed to upload article");
-        }
+  //       const data = await res.json();
+  //       console.log("✅ Article uploaded:", data);
+  //     } catch (err) {
+  //       console.error("⚠️ Upload error:", err);
+  //       setMessages((prev) => [
+  //         ...prev,
+  //         { sender: "bot", text: "Failed to upload article to backend." }
+  //       ]);
+  //     }
+  //   };
 
-        const data = await res.json();
-        console.log("✅ Article uploaded:", data);
-      } catch (err) {
-        console.error("⚠️ Upload error:", err);
-        setMessages((prev) => [
-          ...prev,
-          { sender: "bot", text: "⚠️ Failed to upload article to backend." }
-        ]);
+  //   uploadArticle();
+  // }, []);
+
+  const handleUpsert = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/upsert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          article: "This is a sample article used for testing the chatbot functionality."
+        })
+      });
+  
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Upload failed:", errorText);
+        throw new Error("Failed to upload article");
       }
-    };
-
-    uploadArticle();
-  }, []);
-
+  
+      const data = await res.json();
+      console.log("✅ Article uploaded:", data);
+  
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: `📄 Article uploaded successfully with ${data.num_chunks} chunks.`
+        }
+      ]);
+    } catch (err) {
+      console.error("⚠️ Upload error:", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "❌ Failed to upload article to backend."
+        }
+      ]);
+    }
+  };
+  
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -48,10 +89,12 @@ export default function ChatBox() {
     setInput("");
 
     try {
-      const res = await fetch("/api/chat", {
+      console.log("arrived at try")
+      console.log(userMessage)
+      const res = await fetch("http://localhost:8000/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: input })
+        body:JSON.stringify({question:input})
       });
 
       if (!res.ok) {
@@ -93,7 +136,7 @@ export default function ChatBox() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          //onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="Type your message..."
           className="flex-1 border rounded-xl px-4 py-2"
         />
@@ -102,6 +145,12 @@ export default function ChatBox() {
           className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700"
         >
           Send
+        </button>
+        <button
+          onClick={handleUpsert}
+          className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700"
+        >
+          Send in text article
         </button>
       </div>
     </div>

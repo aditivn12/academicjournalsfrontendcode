@@ -1,86 +1,26 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function ChatBox() {
   const [messages, setMessages] = useState([
-    { sender: "bot", text: "Hi! How can I help you today?" }
+    {
+      sender: "bot",
+      text: "Hi there! Ask me a question or upload an article below to begin."
+    }
   ]);
   const [input, setInput] = useState("");
+  const [articleInput, setArticleInput] = useState("");
 
-  const demoArticle = "This is a sample article used for testing the chatbot functionality.";
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // useEffect(() => {
-  //   const uploadArticle = async () => {
-  //     try {
-  //       const res = await fetch("http://localhost:8000/upsert", {
-  //         method: "POST",
-  //         mode: "no-cors", // 👈 this line sets it
-  //         headers: {
-  //           "Content-Type": "application/json"
-  //         },
-  //         body: JSON.stringify({ article: "some text here" })
-  //       });
-
-  //       if (!res.ok) {
-  //         const errorText = await res.text(); 
-  //         console.error("Upload failed:", errorText);
-  //         throw new Error("Failed to upload article");
-  //       }
-
-  //       const data = await res.json();
-  //       console.log("✅ Article uploaded:", data);
-  //     } catch (err) {
-  //       console.error("⚠️ Upload error:", err);
-  //       setMessages((prev) => [
-  //         ...prev,
-  //         { sender: "bot", text: "Failed to upload article to backend." }
-  //       ]);
-  //     }
-  //   };
-
-  //   uploadArticle();
-  // }, []);
-
-  const handleUpsert = async () => {
-    try {
-      const res = await fetch("http://localhost:8000/upsert", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          article: "This is a sample article used for testing the chatbot functionality."
-        })
-      });
-  
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Upload failed:", errorText);
-        throw new Error("Failed to upload article");
-      }
-  
-      const data = await res.json();
-      console.log("✅ Article uploaded:", data);
-  
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "bot",
-          text: `📄 Article uploaded successfully with ${data.num_chunks} chunks.`
-        }
-      ]);
-    } catch (err) {
-      console.error("⚠️ Upload error:", err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "bot",
-          text: "❌ Failed to upload article to backend."
-        }
-      ]);
-    }
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-  
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -89,12 +29,10 @@ export default function ChatBox() {
     setInput("");
 
     try {
-      console.log("arrived at try")
-      console.log(userMessage)
       const res = await fetch("http://localhost:8000/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:JSON.stringify({question:input})
+        body: JSON.stringify({ question: input })
       });
 
       if (!res.ok) {
@@ -104,54 +42,118 @@ export default function ChatBox() {
       }
 
       const data = await res.json();
-      const botResponse = { sender: "bot", text: data.response };
-
-      setMessages((prev) => [...prev, botResponse]);
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: data.response }
+      ]);
     } catch (err) {
       console.error("⚠️ Chat error:", err);
       setMessages((prev) => [
         ...prev,
-        { sender: "bot", text: "⚠️ Error: Unable to get a response from the backend." }
+        { sender: "bot", text: "Error: Failed to get a response from backend." }
+      ]);
+    }
+  };
+
+  const handleUploadClick = async () => {
+    if (!articleInput.trim()) {
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: "Cannot upload empty article." }
+      ]);
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:8000/upsert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ article: articleInput })
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Upload failed:", errorText);
+        throw new Error("Upload failed");
+      }
+
+      const data = await res.json();
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: `Article uploaded with ${data.num_chunks} chunks.`
+        },
+        {
+          sender: "bot",
+          text: `Article Content:\n\n${articleInput.trim()}`
+        }
+      ]);
+      setArticleInput("");
+    } catch (err) {
+      console.error("⚠️ Upload error:", err);
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: "Failed to upload article." }
       ]);
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto mt-10 p-4 border rounded-2xl shadow-lg bg-white">
-      <div className="h-96 overflow-y-auto space-y-2 p-4 bg-gray-50 rounded-xl">
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`p-3 rounded-lg w-fit max-w-[80%] ${
-              msg.sender === "user"
-                ? "ml-auto bg-blue-100 text-blue-900"
-                : "bg-gray-200 text-gray-800"
-            }`}
+    <div className="w-screen h-screen bg-gray-100 flex flex-col p-6">
+      <div className="flex flex-col flex-grow bg-white rounded-3xl shadow-xl p-6 space-y-6 overflow-hidden">
+        <div className="flex-grow overflow-y-auto p-4 bg-gray-50 rounded-2xl border space-y-4">
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`whitespace-pre-wrap max-w-[80%] px-4 py-3 rounded-2xl shadow-sm transition-all ${
+                msg.sender === "user"
+                  ? "ml-auto bg-blue-100 text-blue-900"
+                  : "bg-gray-200 text-gray-800"
+              }`}
+            >
+              {msg.text}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask a question..."
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            className="flex-1 border rounded-xl px-4 py-2 text-black focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+          />
+          <button
+            onClick={handleSend}
+            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2 rounded-xl font-medium hover:opacity-90 transition"
           >
-            {msg.text}
-          </div>
-        ))}
-      </div>
-      <div className="flex mt-4 gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          //onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          placeholder="Type your message..."
-          className="flex-1 border rounded-xl px-4 py-2"
-        />
-        <button
-          onClick={handleSend}
-          className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700"
-        >
-          Send
-        </button>
-        <button
-          onClick={handleUpsert}
-          className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700"
-        >
-          Send in text article
-        </button>
+            Send
+          </button>
+        </div>
+
+        <hr className="border-t border-gray-200" />
+
+        <div className="space-y-2">
+          <label className="text-sm text-gray-600 font-semibold">
+            Upload full article
+          </label>
+          <textarea
+            value={articleInput}
+            onChange={(e) => setArticleInput(e.target.value)}
+            placeholder="Paste your article here (up to ~3000 words)..."
+            rows={5}
+            className="w-full border px-4 py-3 rounded-xl text-black resize-none focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+          />
+          <button
+            onClick={handleUploadClick}
+            className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white px-5 py-2 rounded-xl font-medium hover:opacity-90 transition"
+          >
+            Upload Article
+          </button>
+        </div>
       </div>
     </div>
   );

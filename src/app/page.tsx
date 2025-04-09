@@ -34,7 +34,7 @@ export default function ChatBox() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: input })
       });
-
+// comment to reploy
       if (!res.ok) {
         const errorText = await res.text();
         console.error("Chat fetch error:", errorText);

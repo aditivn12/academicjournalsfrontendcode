@@ -29,7 +29,7 @@ export default function ChatBox() {
     setInput("");
 
     try {
-      const res = await fetch("http://localhost:8000/chat", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: input })
@@ -65,7 +65,7 @@ export default function ChatBox() {
     }
 
     try {
-      const res = await fetch("http://localhost:8000/upsert", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/upsert`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ article: articleInput })
@@ -91,7 +91,7 @@ export default function ChatBox() {
       ]);
       setArticleInput("");
     } catch (err) {
-      console.error("⚠️ Upload error:", err);
+      console.error("Upload error:", err);
       setMessages((prev) => [
         ...prev,
         { sender: "bot", text: "Failed to upload article." }

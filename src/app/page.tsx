@@ -5,7 +5,7 @@ export default function ChatBox() {
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Hi there! Ask me a question or upload an article below to begin."
+      text: "Hi there! Upload an article below to begin (paste in the text)."
     }
   ]);
   const [input, setInput] = useState("");
@@ -34,7 +34,7 @@ export default function ChatBox() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: input })
       });
-// comment to reploy
+
       if (!res.ok) {
         const errorText = await res.text();
         console.error("Chat fetch error:", errorText);
@@ -47,7 +47,7 @@ export default function ChatBox() {
         { sender: "bot", text: data.response }
       ]);
     } catch (err) {
-      console.error("⚠️ Chat error:", err);
+      console.error("Chat error:", err);
       setMessages((prev) => [
         ...prev,
         { sender: "bot", text: "Error: Failed to get a response from backend." }
